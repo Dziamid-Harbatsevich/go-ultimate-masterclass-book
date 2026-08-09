@@ -1,31 +1,37 @@
 # 📘 Day 2: Composition Over Inheritance & Polymorphism Semantics
 
 ## 📝 Printed Summary for Day 2
-* **Composition Over Inheritance Mechanics**: Deep operational explanation of how Go bypasses the "Fragile Base Class" architectural vulnerabilities of classical OOP (PHP/C#) by nesting structs anonymously instead of deriving child dependencies.
-* **Property Promotion & Shadowing Collision Resolution**: Complete structural logic maps showing how properties bubble up to outer structs automatically, alongside strategies for resolving naming collisions explicitly using typed namespaces.
-* **Value vs. Pointer Receivers Performance Balancing**: Technical criteria evaluating when to execute actions on a local stack clone (Value `(u User)`) versus changing original data points directly across global memory regions via pointer addresses (`(u *User)`).
-* **Decoupled Interface Polymorphism (Implicit Duck Typing)**: Architectural rules for designing production layers where structs automatically satisfy domain contracts simply by implementing matching methods, removing the need for boilerplate compilation keywords like `implements`.
-* **The Domain Isolation Lab**: A complete, multi-file code implementation (`product.go`, `main.go`) utilizing a fast, memory-isolated mock data engine to test business constraints completely decoupled from standard persistence drives.
+
+- **Composition Over Inheritance Mechanics**: Deep operational explanation of how Go bypasses the "Fragile Base Class" architectural vulnerabilities of classical OOP (PHP/C#) by nesting structs anonymously instead of deriving child dependencies.
+- **Property Promotion & Shadowing Collision Resolution**: Complete structural logic maps showing how properties bubble up to outer structs automatically, alongside strategies for resolving naming collisions explicitly using typed namespaces.
+- **Value vs. Pointer Receivers Performance Balancing**: Technical criteria evaluating when to execute actions on a local stack clone (Value `(u User)`) versus changing original data points directly across global memory regions via pointer addresses (`(u *User)`).
+- **Decoupled Interface Polymorphism (Implicit Duck Typing)**: Architectural rules for designing production layers where structs automatically satisfy domain contracts simply by implementing matching methods, removing the need for boilerplate compilation keywords like `implements`.
+- **The Domain Isolation Lab**: A complete, multi-file code implementation (`product.go`, `main.go`) utilizing a fast, memory-isolated mock data engine to test business constraints completely decoupled from standard persistence drives.
 
 ---
 
 ## 1. The Architectural Paradigm Shift: Composition vs. Inheritance
 
-For engineers with an intensive background in classical Object-Oriented Programming (OOP) like PHP (Symfony/Laravel), C#, or TypeScript, Go requires a complete shift in how you structure data and behaviors. 
+For engineers with an intensive background in classical Object-Oriented Programming (OOP) like PHP (Symfony/Laravel), C#, or TypeScript, Go requires a complete shift in how you structure data and behaviors.
 
 Go intentionally lacks a `class` keyword, an `extends` keyword, and traditional hierarchical inheritance. Instead, it relies strictly on **Composition Over Inheritance** using **Struct Embedding** and **Implicit Interfaces**.
 
 ### The Fragile Base Class Problem (Classical OOP)
+
 In classical architectures, code reuse often leads to deep hierarchical trees:
+
 ```
 BaseModel ──► AuthenticatableModel ──► User ──► AdminUser
 ```
+
 This pattern introduces tight coupling. A modification to the internal behavior of `BaseModel` can inadvertently cause breaking changes down the entire chain of child structures.
 
 ### The Go Composition Model (Has-A / Acts-As)
-Go structures are decoupled. You build complex models by combining small, focused components. 
-* A struct doesn't *inherit* from another; it **embeds** it (Composition).
-* A struct doesn't explicitly declare that it *implements* a contract; it satisfies it automatically by defining the matching methods (Implicit Interface).
+
+Go structures are decoupled. You build complex models by combining small, focused components.
+
+- A struct doesn't *inherit* from another; it **embeds** it (Composition).
+- A struct doesn't explicitly declare that it *implements* a contract; it satisfies it automatically by defining the matching methods (Implicit Interface).
 
 ---
 
@@ -99,8 +105,9 @@ METHOD RECEIVER COMPARISON PROFILE
 ```
 
 ### Senior Execution Rules for Microservice Gateways
-* **Consistency Rule**: If any method on a struct requires a **pointer receiver** to mutate data, *all* methods on that struct should use a pointer receiver, even if they only read data. This ensures consistent interface resolution at compile time.
-* **Size Threshold**: If a struct contains strings, arrays, or maps that exceed 64 bytes, use pointer receivers across the board to avoid the CPU cost of copying data on the stack during rapid execution loops.
+
+- **Consistency Rule**: If any method on a struct requires a **pointer receiver** to mutate data, *all* methods on that struct should use a pointer receiver, even if they only read data. This ensures consistent interface resolution at compile time.
+- **Size Threshold**: If a struct contains strings, arrays, or maps that exceed 64 bytes, use pointer receivers across the board to avoid the CPU cost of copying data on the stack during rapid execution loops.
 
 ---
 
@@ -109,6 +116,7 @@ METHOD RECEIVER COMPARISON PROFILE
 Go interfaces are completely implicit. Unlike PHP (`interface UserRepo { ... }` and `class MySQLRepo implements UserRepo`), a Go struct does not declare its interface compliance. If a struct defines the exact methods listed in an interface, the compiler considers it a valid implementation.
 
 ### The Mechanics of "Duck Typing"
+
 > *"If it walks like a duck and quacks like a duck, it's a duck."*
 
 This approach delivers clean decoupling. It allows consumers to define their own minimal interfaces instead of forcing producers to ship massive contract files, leading to a highly modular and extensible system architecture.
@@ -117,18 +125,20 @@ This approach delivers clean decoupling. It allows consumers to define their own
 
 ## 5. Real-World Deep Dive Lab: Building a Decoupled API Store Layer
 
-To complete Day 2, let's design an enterprise-grade decoupled service layer. We will build a product service that interacts with a database repository. 
+To complete Day 2, let's design an enterprise-grade decoupled service layer. We will build a product service that interacts with a database repository.
 
 By applying implicit interface contracts, we can decouple our business logic entirely from our storage layer, allowing us to swap a local mock database layer for a production MySQL instance with zero code changes.
 
 ### 🛠️ Execution Implementation Instructions
 
 Ensure your workspace directory layout matches this structure:
+
 ```bash
 mkdir -p internal/domain
 ```
 
 ### 📜 File: `internal/domain/product.go`
+
 Create the domain file defining your data models, interface definitions, and core service operations.
 
 ```go
@@ -181,6 +191,7 @@ func (s *ProductService) RegisterNewProduct(name string, price float64) (*Produc
 ```
 
 ### 📜 File: `cmd/api/main.go`
+
 Create your primary executable module. This file constructs a fast, memory-isolated mock database structure that satisfies the store interface automatically, allowing you to run your application instantly.
 
 ```go
@@ -242,7 +253,7 @@ func main() {
 ", product.ID)
 	fmt.Printf("Stored Model Name: %s
 ", product.Name)
-	fmt.Printf("Stored Model Price: \$%.2f
+	fmt.Printf("Stored Model Price: %.2f
 ", product.Price)
 
 	// 4. Test service validation rules with invalid inputs
