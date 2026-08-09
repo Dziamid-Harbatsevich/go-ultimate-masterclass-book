@@ -16,5 +16,17 @@
 
 ✦ Structured Logging & Observability
 
+&nbsp;
+## TABLE OF CONTENTS 📘 ##
+- [📘 Day 1: Deep-Dive Execution Mechanics & Architecture Shift](golang_day1_deep_dive.md)
+- [📘 Day 2: Composition Over Inheritance & Polymorphism Semantics](/golang_day2_deep_dive.md)
+- [📘 Day 3: Modern Dependency Management, Project Layouts, and Monorepos](/golang_day3_deep_dive.md)
+- [📘 Day 4: Advanced Error Architecture, Sentinel Errors, and REST API Payload Validation](/golang_day4_deep_dive.md)
+- [📘 Day 5: High-Performance Database Pools, Transactions & JSON Streams](/golang_day5_deep_dive.md)
+- [📘 Day 6: Advanced Concurrency Patterns, Memory Synchronization, and Worker Pools](/golang_day6_deep_dive.md)
+- [📘 Day 7: Productionization, Observability, and Containerized Deployment](/golang_day7_deep_dive.md)
+- [Appendix 1: Makefile](/Appendices/Makefile)
+- [Appendix 1: Env File](/Appendices/env)
+- [Appendix 1: API Postman Collection](/Appendices/go_api_postman_collection.json)
 ---
-**Go Masterclass Book · Complete Edition**
+⭐ **Go Masterclass Book · Complete Edition**
