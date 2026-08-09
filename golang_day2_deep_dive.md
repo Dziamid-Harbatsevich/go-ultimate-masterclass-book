@@ -243,24 +243,45 @@ func main() {
 	// 3. Register a valid product via the service layer
 	product, err := service.RegisterNewProduct("Ultrawide Curved Monitor", 649.99)
 	if err != nil {
-		fmt.Printf("Execution Error: %v
-", err)
+		fmt.Printf("Execution Error: %v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Println("🚀 Registration processing execution succeeded!")
-	fmt.Printf("Assigned Row ID: %d
-", product.ID)
-	fmt.Printf("Stored Model Name: %s
-", product.Name)
-	fmt.Printf("Stored Model Price: %.2f
-", product.Price)
+	fmt.Printf("Assigned Row ID: %d\n", product.ID)
+	fmt.Printf("Stored Model Name: %s\n", product.Name)
+	fmt.Printf("Stored Model Price: %.2f\n", product.Price)
 
 	// 4. Test service validation rules with invalid inputs
 	_, err = service.RegisterNewProduct("", -10.00)
 	if err != nil {
-		fmt.Printf("\nValidation intercept verification passed: %v
-", err)
+		fmt.Printf("\nValidation intercept verification passed: %v\n", err)
 	}
 }
 ```
+
+### Let's explain that a little bit…
+
+**Key Go concept:** `MockProductDB` **implicitly satisfies** the `domain.ProductStore` interface (defined in `product.go`):
+
+```
+type ProductStore interface {
+    Save(p \*Product) error
+    FindByID(id int) (\*Product, error)
+}
+```
+
+Go uses **structural typing** — there's no explicit `implements` keyword. Because `*MockProductDB` has methods matching the interface's signature, it can be assigned to a `ProductStore` variable automatically. This is the foundation of Go's polymorphism.
+
+**Dependency injection**: the service receives its storage dependency through the `Store` field, which is typed as the `ProductStore` interface. The service layer has **no knowledge** of `MockProductDB` — it only knows the contract. This decoupling means you could swap in a real `MySQLStore` later without touching `ProductService`.
+
+## **Summary of Architectural Lessons**
+
+| **Concept** | **Where Demonstrated** |
+| --- | --- |
+| **Pointer-based mutation** | `ParseCredentials(&appConfig, ...)` mutates the struct in place |
+| **Fail-fast startup** | `os.Exit(1)` on config error |
+| **Implicit interface satisfaction** | `*MockProductDB` satisfies `domain.ProductStore` with no explicit declaration |
+| **Dependency injection** | `ProductService.Store` receives the store via constructor-like assignment |
+| **Decoupling** | Service depends on the `ProductStore` interface, not a concrete type |
+| **Validation in the domain layer** | `RegisterNewProduct` enforces business rules before persistence |
