@@ -4,8 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
 	"playground/internal/config"
 	"playground/internal/domain"
+
+	// Import custom workspace files using your module name prefix
+	"playground/internal/db"
+	internalConfig "playground/pkg/config"
 )
 
 func bootstrapDB() {
@@ -88,5 +93,32 @@ func main() {
 	_, err = service.RegisterNewProduct("", -10.00)
 	if err != nil {
 		fmt.Printf("\nValidation intercept verification passed: %v\n", err)
+	}
+
+	//-- DAY 3
+	fmt.Println("=== DAY 3: MULTI-PACKAGE MICROSERVICE RUNNER ===")
+
+	// 1. Load configurations using public helper elements inside /pkg
+	inputDSN := "app_admin:secure_mysql_pass@tcp(127.0.0.1:3306)/production_store"
+	targetPort := "8080"
+
+	profile, err := internalConfig.LoadProfile(inputDSN, targetPort)
+	if err != nil {
+		fmt.Printf("Initialization Fatal Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✅ Public configuration assets loaded cleanly.")
+	fmt.Printf("[Config] Networking targeted port listener mapped to %s\n", profile.APIPort)
+
+	// 2. Initialize connection structures using systems isolated inside /internal
+	connectionPool, err := db.BootPool(profile.DSN)
+	if err != nil {
+		fmt.Printf("Data Initialization Fatal Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if connectionPool.IsConnected {
+		fmt.Println("🚀 System booted successfully. Microservice is online.")
 	}
 }
