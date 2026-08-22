@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bootstrapper/internal/config"
-	"bootstrapper/internal/domain"
 	"errors"
 	"fmt"
 	"os"
+	"playground/internal/config"
+	"playground/internal/domain"
 )
 
 func bootstrapDB() {
