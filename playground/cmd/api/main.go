@@ -3,15 +3,25 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
-
-	"playground/internal/config"
-	"playground/internal/domain"
+	"time"
 
 	// Import custom workspace files using your module name prefix
+	"playground/internal/config"
 	"playground/internal/db"
+	"playground/internal/domain"
 	internalConfig "playground/pkg/config"
 )
+
+// MockProductDB implements domain.ProductStore implicitly by defining matching methods
+type MockProductDB struct {
+	memoryTable map[int]*domain.Product
+	currentID   int
+}
+
+type Env struct{}
 
 func bootstrapDB() {
 	// 1. Instantiate the memory object space inside the application Stack
@@ -35,12 +45,6 @@ func bootstrapDB() {
 	fmt.Printf("Database Endpoint Target: %s\n", appConfig.DSN)
 	fmt.Printf("Total Thread Workers Configured: %d\n", appConfig.MaxWorkers)
 	fmt.Println("🚀 Application booted cleanly without warnings.")
-}
-
-// MockProductDB implements domain.ProductStore implicitly by defining matching methods
-type MockProductDB struct {
-	memoryTable map[int]*domain.Product
-	currentID   int
 }
 
 // Save stores the product into an in-memory hash map table
@@ -121,4 +125,20 @@ func main() {
 	if connectionPool.IsConnected {
 		fmt.Println("🚀 System booted successfully. Microservice is online.")
 	}
+
+	//-- DAY 4
+	app := &Env{}
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("POST /products", app.CreateProductEndpoint)
+
+	server := &http.Server{
+		Addr:         ":8080",
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	log.Println("🚀 Day 4 Validation & Error Core Service actively listening on port 8080...")
+	log.Fatal(server.ListenAndServe())
 }
