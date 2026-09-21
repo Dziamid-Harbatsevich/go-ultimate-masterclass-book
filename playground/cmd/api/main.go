@@ -1,18 +1,25 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	// Import custom workspace files using your module name prefix
 	"playground/internal/config"
+	"playground/internal/data"
 	"playground/internal/db"
 	"playground/internal/domain"
 	internalConfig "playground/pkg/config"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // MockProductDB implements domain.ProductStore implicitly by defining matching methods
@@ -22,6 +29,14 @@ type MockProductDB struct {
 }
 
 type Env struct{}
+
+type ApplicationContainer struct {
+	Products *data.ProductRepository
+}
+
+type ErrorResponse struct {
+	Message string `json:"error"`
+}
 
 func bootstrapDB() {
 	// 1. Instantiate the memory object space inside the application Stack
@@ -62,6 +77,65 @@ func (db *MockProductDB) FindByID(id int) (*domain.Product, error) {
 		return nil, errors.New("sql: no rows found in result set")
 	}
 	return p, nil
+}
+
+func (app *ApplicationContainer) GetProductHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Invalid input token identifier"})
+		return
+	}
+
+	// Establish a bounded 3-second processing timeout context for this database pipeline operation
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	product, err := app.Products.FindByID(ctx, id)
+	if err != nil {
+		if err.Error() == "product record not found" {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal operational data lookup failure"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(product)
+}
+
+func (app *ApplicationContainer) CreateProductHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Read and decode the inbound JSON stream directly from the network socket reader
+	var input struct {
+		Name  string  `json:"name"`
+		Price float64 `json:"price"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Malformed input JSON structure"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	product, err := app.Products.CreateWithAudit(ctx, input.Name, input.Price)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Transaction processing failure encountered"})
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(product)
 }
 
 func main() {
@@ -127,18 +201,49 @@ func main() {
 	}
 
 	//-- DAY 4
-	app := &Env{}
-	mux := http.NewServeMux()
+	// app := &Env{}
+	// mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /products", app.CreateProductEndpoint)
+	// mux.HandleFunc("POST /products", app.CreateProductEndpoint)
 
-	server := &http.Server{
-		Addr:         ":8080",
-		Handler:      mux,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+	// server := &http.Server{
+	// 	Addr:         ":8080",
+	// 	Handler:      mux,
+	// 	ReadTimeout:  5 * time.Second,
+	// 	WriteTimeout: 10 * time.Second,
+	// }
+
+	// log.Println("🚀 Day 4 Validation & Error Core Service actively listening on port 8080...")
+	// log.Fatal(server.ListenAndServe())
+
+	//-- DAY 5
+	fmt.Println("Starting Day 5. MySQL ACID Transactions...")
+
+	// Initialize a production connection pool (Update with your local credentials)
+	dsn := "test:password@tcp(127.0.0.1:3306)/test?parseTime=true"
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatalf("Pool activation crash: %v", err)
 	}
+	defer db.Close()
 
-	log.Println("🚀 Day 4 Validation & Error Core Service actively listening on port 8080...")
-	log.Fatal(server.ListenAndServe())
+	// Tune connection limits to match production capacity profiles
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Database connection check failed: %v", err)
+	}
+	log.Println("🔌 Core MySQL connection pool initialized successfully.")
+
+	repo := &data.ProductRepository{DB: db}
+	appWithRealSql := &ApplicationContainer{Products: repo}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /products/{id}", appWithRealSql.GetProductHandler)
+	mux.HandleFunc("POST /products", appWithRealSql.CreateProductHandler)
+
+	log.Println("🚀 High-Performance REST Engine listening on port 8080...")
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
