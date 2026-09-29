@@ -1,0 +1,107 @@
+# ==============================================================================
+# DOCKER BUILD CONTEXT FILTER
+# ==============================================================================
+# Context root = ./playground (the Go module root). The Dockerfile depends on
+# `COPY go.mod go.sum ./`, then `COPY . .`, then `go build ./cmd/server`.
+#
+# ⛔ NEVER ignore: go.mod, go.sum, cmd/, internal/, pkg/
+#    (nothing below matches those paths)
+#
+# Everything that survives this file is uploaded to the builder and baked into
+# the intermediate `builder` stage layer, which is retrievable from the image.
+# Patterns are context-root relative. A bare `*.ext` matches ONLY files at the
+# root — use `**/` to reach subdirectories. To re-include a path inside an
+# ignored directory, re-include the directory as well (or ignore `dir/*`).
+# ==============================================================================
+
+# ------------------------------------------------------------------
+# VERSION CONTROL METADATA
+# ------------------------------------------------------------------
+.git
+.gitignore
+.gitattributes
+.gitmodules
+.github/
+
+# ------------------------------------------------------------------
+# CONTAINER / ORCHESTRATION DEFINITIONS
+# ------------------------------------------------------------------
+# The daemon always receives the Dockerfile out-of-band and COPY/ADD never copy
+# these, so excluding them is safe and keeps the `COPY . .` cache key clean.
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+docker-compose*.yaml
+compose*.yml
+compose*.yaml
+.docker/
+
+# ------------------------------------------------------------------
+# EDITOR / OS NOISE
+# ------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+**/.DS_Store
+**/Thumbs.db
+
+# ------------------------------------------------------------------
+# DOCUMENTATION & HOST-LEVEL TOOLING
+# ------------------------------------------------------------------
+# Runtime is `scratch` + a static binary: no doc ever ships.
+# NOTE: drop **/*.md if you ever add `//go:embed` of markdown assets.
+**/*.md
+docs/
+notes/
+# NOTE: remove this line if the Dockerfile ever switches to `RUN make build`.
+Makefile
+
+# ------------------------------------------------------------------
+# LOCALLY COMPILED ARTIFACTS
+# ------------------------------------------------------------------
+# `go build ./cmd/server` without -o drops an ~8MB `server` binary here;
+# the book's appendix Makefile writes ./bin/microservice. Root-anchored
+# patterns only — cmd/server/ is NOT affected by the `server` entry.
+server
+bin/
+dist/
+build/
+*.exe
+*.test
+*.out
+coverage.out
+*.coverprofile
+*.prof
+
+# ------------------------------------------------------------------
+# SECRETS & LOCAL RUNTIME STATE
+# ------------------------------------------------------------------
+# Without this block, `COPY . .` bakes real credentials into the builder stage.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+logs/
+**/*.log
+tmp/
+data/
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+
+# ------------------------------------------------------------------
+# GO BUILD / MODULE CACHES (only if redirected into the project)
+# ------------------------------------------------------------------
+.cache/
+.gocache/
+go-build*/
+
+# ⚠️ DO NOT ignore vendor/ : with go >= 1.14 a vendor/ directory silently turns
+#    on -mod=vendor, so excluding it would break `go build` in the container.
