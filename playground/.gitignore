@@ -1,0 +1,29 @@
+# Logs
+*.log
+
+# Compiled binaries and build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+
+# Go test binaries and coverage
+*.test
+*.out
+coverage.txt
+
+# Dependency directories
+vendor/
+
+# Environment / local overrides
+.env
+.env.local
+
+# Editor and OS noise
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
